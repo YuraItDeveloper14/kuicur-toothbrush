@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- The page's own signature: the power ring on the handle, with the light on. -->
+  <rect width="64" height="64" rx="14" fill="#EDF1EF"/>
+  <circle cx="32" cy="27" r="13" fill="none" stroke="#CCA481" stroke-width="4"/>
+  <circle cx="32" cy="50" r="4.6" fill="#FFFFFF" stroke="#B8B7BE" stroke-width="1.6"/>
+</svg>

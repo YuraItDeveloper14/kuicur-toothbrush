@@ -1,0 +1,975 @@
+/* ===========================================================================
+   Kuicur — page styles.
+   The page is one scroll story around a single photograph, then a board of
+   figures you can move and open. Sections that animate are taller than the
+   viewport and hold a sticky stage; one loop in scroll.js writes --p (0 → 1)
+   onto each of them and CSS does the rest.
+   =========================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--porcelain);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: var(--t-body);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+img { display: block; max-width: 100%; height: auto; }
+
+h1, h2 { margin: 0; font-family: var(--display); font-weight: 800; }
+p { margin: 0; }
+ul { margin: 0; padding: 0; list-style: none; }
+
+::selection { background: var(--gold-lit); color: var(--text); }
+
+:focus-visible {
+  outline: 2px solid var(--gold-deep);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.skip {
+  position: fixed;
+  left: var(--s-2);
+  top: var(--s-2);
+  z-index: 60;
+  padding: var(--s-2) var(--s-3);
+  background: var(--ink);
+  color: var(--text-on-ink);
+  font: 500 var(--t-sm)/1 var(--body);
+  text-decoration: none;
+  clip-path: inset(50%);
+}
+.skip:focus { clip-path: none; }
+
+/* --- shared bits -------------------------------------------------------- */
+
+.eyebrow {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.eyebrow--ink { color: var(--text-on-ink-dim); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: 0.95em 1.5em;
+  border-radius: 100px;
+  background: var(--ink);
+  color: var(--text-on-ink);
+  font-size: var(--t-sm);
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease-out), color var(--dur) var(--ease-out);
+}
+.btn svg {
+  width: 1.05em; height: 1.05em;
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+  transition: transform var(--dur) var(--ease-out);
+}
+.btn:hover { background: var(--gold-deep); color: #fff; }
+.btn:hover svg { transform: translateX(4px); }
+.btn--lg { padding: 1.15em 2em; font-size: 1rem; background: var(--gold-lit); color: var(--ink); }
+.btn--lg:hover { background: var(--gold-high); color: var(--ink); }
+
+/* --- 1. the handle ------------------------------------------------------ */
+
+.tour { height: 700vh; }
+
+.tour__sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--s-2);
+  padding: var(--s-4) var(--gutter) var(--s-5);
+}
+
+.tour__title {
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+  display: flex;
+  align-items: baseline;
+  gap: 0.7em;
+}
+.tour__title span {
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.tour__hint {
+  margin-top: 0.35rem;
+  font-size: var(--t-sm);
+  color: var(--text-muted);
+}
+
+.tour__grid {
+  --stage-w: clamp(260px, 29vw, 400px);
+  --stage-h: min(76vh, 700px);
+  /* the brush inside the frame is a fixed fraction of the frame's height */
+  --brush-w: calc(var(--stage-h) * 0.1712);
+  --panel-gap: 5rem;
+  /* a lead that runs from the words to just short of the handle itself */
+  --lead: calc(var(--panel-gap) + (var(--stage-w) - var(--brush-w)) / 2 - 0.55rem);
+
+  position: relative;
+  align-self: center;
+  height: var(--stage-h);
+  display: flex;
+  justify-content: center;
+}
+
+/* The window the camera looks through. */
+.tour__stage {
+  position: relative;
+  width: var(--stage-w);
+  height: 100%;
+  overflow: hidden;
+}
+
+/* The camera. Its height is a fixed 3.05 stage-heights; --scale narrows the
+   view and --focus says which point of the photograph sits at the centre. */
+.tour__cam {
+  --scale: 0.685;
+  --focus: 0.70;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 305%;
+  aspect-ratio: 800 / 4301;
+  transform: translate(-50%, calc(-50% + (0.5 - var(--focus)) * var(--scale) * 100%)) scale(var(--scale));
+  transition: transform 1100ms var(--ease-out);
+  will-change: transform;
+}
+.tour__cam img { width: 100%; height: 100%; }
+
+[data-shot="head"]   .tour__cam { --scale: 1;     --focus: 0.199; }
+[data-shot="button"] .tour__cam { --scale: 0.72;  --focus: 0.60; }
+[data-shot="modes"]  .tour__cam { --scale: 0.685; --focus: 0.72; }
+[data-shot="charge"] .tour__cam { --scale: 0.685; --focus: 0.75; }
+
+/* The printing on the handle, drawn rather than photographed. The strip is
+   wiped to bare cylinder in the build, and these go back over it at the same
+   places, in the greys the real handle uses. */
+.tour__print {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.tour__icon,
+.pr__icon { fill: none; stroke: #9E9E9E; stroke-width: 1.55; stroke-linecap: round; stroke-linejoin: round; }
+.pr__dot  { fill: #464646; }
+.pr__batt { fill: #9E9E9E; }
+
+/* Once the last mode is showing, the button has nothing left to do: it fades
+   back and stops responding, and the rest of the handle is reached by
+   scrolling. */
+[data-beat="6"] .tour__key,
+[data-beat="7"] .tour__key {
+  opacity: 0.26;
+  pointer-events: none;
+  box-shadow: none;
+}
+
+/* Overlays sit in the photograph's own coordinates, measured off the file, so
+   they travel and scale with the camera. */
+.tour__dot,
+.tour__press {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.tour__dot {
+  left: 48.8%;
+  width: 2.6%;
+  aspect-ratio: 1;
+  background: #fff;
+  opacity: 0;
+  transition: opacity 420ms var(--ease-out), box-shadow 420ms var(--ease-out);
+}
+.tour__dot[data-dot="0"] { top: 63.30%; }
+.tour__dot[data-dot="1"] { top: 67.30%; }
+.tour__dot[data-dot="2"] { top: 71.25%; }
+.tour__dot[data-dot="3"] { top: 75.18%; }
+.tour__dot[data-dot="4"] { top: 79.07%; }
+.tour__dot[data-dot="5"] { top: 83.18%; }   /* the hole above the battery mark */
+
+/* A small white light. The handle is a warm grey-white, so the bloom is given
+   the faintest cool cast — the way an LED actually reads against it — and the
+   dot stays legible without turning gold. */
+/* A white light on a white handle needs an edge to be seen at all: white hot
+   core, then bloom, with only the faintest cool cast so it separates from the
+   warm grey of the body. */
+.tour__dot.is-lit {
+  opacity: 1;
+  background: #fff;
+  box-shadow:
+    0 0 0 1.5px rgba(255, 255, 255, 1),
+    0 0 7px 2px rgba(255, 255, 255, 1),
+    0 0 16px 5px rgba(246, 250, 255, 0.92),
+    0 0 34px 11px rgba(214, 226, 238, 0.55);
+}
+
+/* The power button, sitting exactly on the printed one — measured off the
+   photograph at centre (748, 1096) radius 42 in a 1500 x 2000 frame. Pressing
+   it steps to the next mode, the same way pressing the real one does. */
+.tour__key {
+  position: absolute;
+  left: 48.8%;
+  top: 54.83%;
+  width: 23.2%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  padding: 0;
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out);
+}
+.tour__key::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  pointer-events: none;
+}
+.tour__key:hover,
+.tour__key:focus-visible { opacity: 1; box-shadow: 0 0 0 7px rgba(204, 164, 129, 0.22); }
+.tour__key:active { transform: translate(-50%, -50%) scale(0.94); }
+
+.tour__keyLabel {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* it pulses on the beat that asks you to press it */
+[data-beat="1"] .tour__key { opacity: 1; box-shadow: 0 0 16px 3px rgba(204, 164, 129, 0.42); }
+[data-beat="1"] .tour__key::after { animation: press 1.9s var(--ease-io) infinite; }
+
+@keyframes press {
+  0%   { opacity: 0.7; transform: scale(1); }
+  70%  { opacity: 0;   transform: scale(1.9); }
+  100% { opacity: 0;   transform: scale(1.9); }
+}
+
+/* Text panels. Each is pinned opposite the thing it points at. */
+.tour__panels { display: contents; }
+
+.panel {
+  position: absolute;
+  top: calc(var(--ty) * 100%);
+  width: min(30ch, 24vw);
+  opacity: 0;
+  transform: translateY(-50%) translateX(var(--slide, 0));
+  transition: opacity 520ms var(--ease-out), transform 620ms var(--ease-out);
+  pointer-events: none;
+}
+.panel--left  { --slide: 14px; right: calc(50% + var(--stage-w) / 2 + var(--panel-gap)); text-align: right; }
+.panel--right { --slide: -14px; left: calc(50% + var(--stage-w) / 2 + var(--panel-gap)); }
+.panel.is-on { opacity: 1; --slide: 0px; }
+
+/* the gold lead that reaches from the words to the indicator */
+.panel::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: var(--lead);
+  height: 1px;
+  background: var(--gold);
+  transform: scaleX(0);
+  transition: transform 760ms var(--ease-out) 120ms;
+}
+.panel--left::after  { right: calc(-1 * var(--lead)); transform-origin: left center; }
+.panel--right::after { left: calc(-1 * var(--lead)); transform-origin: right center; }
+.panel.is-on::after { transform: scaleX(1); }
+
+.panel__kicker {
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold-deep);
+}
+.panel__title {
+  margin: 0.35rem 0 0.5rem;
+  font-size: clamp(1.5rem, 2.9vw, 2.6rem);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+}
+.panel__note { font-size: var(--t-sm); color: var(--text-muted); }
+
+@media (max-width: 900px) {
+  .tour { height: 640vh; }
+  .tour__grid {
+    --stage-w: clamp(165px, 46vw, 220px);
+    --stage-h: min(44vh, 340px);
+    display: grid;
+    grid-template-rows: auto 1fr;
+    justify-items: center;
+    gap: var(--s-3);
+    height: auto;
+  }
+  .tour__stage { height: var(--stage-h); }
+  .tour__panels { display: block; position: relative; width: 100%; min-height: 15rem; }
+  .panel {
+    top: 0;
+    right: auto;
+    left: 0;
+    width: 100%;
+    text-align: left;
+    /* stacked under the photograph now, so drop the vertical centring */
+    transform: translateX(var(--slide, 0));
+  }
+  .panel::after { display: none; }
+}
+
+/* --- 3. the strip ------------------------------------------------------- */
+
+/* Seven frames run past sideways while the page scrolls down. The rail is
+   pinned; the track is pushed left by exactly its own overhang, so the last
+   frame lands flush against the right edge. */
+.strip {
+  height: 620vh;
+  /* a shade warmer than the page, so the band reads as its own room without
+     going dark */
+  background: linear-gradient(180deg, var(--porcelain) 0%, #E7EAE6 30%, #E7EAE6 70%, var(--porcelain) 100%);
+}
+
+.strip__rail {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: grid;
+  /* the track is max-content wide; without this the column stretches to match
+     it and the header and meter get carried off the side of the screen */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto;
+  gap: var(--s-3);
+  padding: var(--s-5) 0 var(--s-4);
+  overflow: hidden;
+}
+
+.strip__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin: 0 var(--gutter);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--hairline);
+}
+.strip__hint { font-size: var(--t-sm); color: var(--text-muted); }
+
+.strip__track {
+  display: flex;
+  align-items: stretch;
+  gap: clamp(1rem, 2vw, 2rem);
+  padding: 0 var(--gutter);
+  margin: 0;
+  list-style: none;
+  width: max-content;
+  /* the track already carries a gutter of padding at each end, so its own
+     width is all the travel there is */
+  transform: translate3d(calc(var(--p, 0) * (100vw - 100%)), 0, 0);
+  will-change: transform;
+}
+
+.fr {
+  position: relative;
+  width: clamp(290px, 42vw, 500px);
+  display: grid;
+  grid-template-rows: auto auto auto auto 1fr auto;
+  gap: 0.45rem;
+  padding: var(--s-4) var(--s-4) var(--s-3);
+  border: 1px solid rgba(20, 24, 27, 0.07);
+  border-radius: 18px;
+  background: #FFFFFF;
+  box-shadow: 0 1px 2px rgba(20, 24, 27, 0.04), 0 18px 40px -24px rgba(20, 24, 27, 0.28);
+  overflow: hidden;
+  transition: box-shadow 400ms var(--ease-out), transform 400ms var(--ease-out);
+}
+.fr:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 2px 4px rgba(20, 24, 27, 0.05), 0 30px 60px -28px rgba(20, 24, 27, 0.34);
+}
+
+/* the frame's own number, ghosted into the corner */
+.fr::after {
+  content: attr(data-ghost);
+  position: absolute;
+  right: -0.12em;
+  bottom: -0.34em;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 11rem;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  color: rgba(20, 24, 27, 0.035);
+  pointer-events: none;
+}
+
+.fr__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-2); }
+.fr__label,
+.fr__index {
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.fr__label { color: var(--gold-deep); }
+.fr__index { color: var(--text-faint); }
+.fr__index span { opacity: 0.6; }
+
+.fr__value {
+  position: relative;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(3rem, 6.6vw, 5.8rem);
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+  margin-top: 0.4rem;
+  color: var(--text);
+}
+.fr__unit {
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold-deep);
+}
+.fr__copy { margin-top: 0.4rem; font-size: var(--t-sm); color: var(--text-muted); max-width: 40ch; }
+
+.fr__figure {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: var(--s-3) 0 var(--s-2);
+}
+.fr__art { width: 100%; height: auto; max-height: 130px; color: var(--gold); }
+.fr__dial { width: auto; height: min(130px, 18vh); color: var(--gold); }
+
+.fr__open {
+  position: relative;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.62em 1.2em;
+  border: 1px solid var(--hairline);
+  border-radius: 100px;
+  background: none;
+  color: var(--text-muted);
+  font-family: var(--body);
+  font-size: var(--t-sm);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease-out), color var(--dur) var(--ease-out),
+              border-color var(--dur) var(--ease-out);
+}
+.fr__open span { transition: transform var(--dur) var(--ease-out); }
+.fr__open:hover { background: var(--ink); border-color: var(--ink); color: var(--porcelain); }
+.fr__open:hover span { transform: translateX(3px); }
+
+/* the little figures inside the frames */
+.fr__cells {
+  display: grid;
+  grid-template-columns: repeat(18, 1fr);
+  gap: 3px;
+  width: 100%;
+}
+.fr__cells i { aspect-ratio: 1; border-radius: 2px; background: var(--gold); opacity: 0.85; }
+.fr__cells i:nth-child(n+61) { background: var(--gold); opacity: 0.28; }
+
+.fr__charge { display: grid; gap: 0.9rem; width: 100%; justify-items: center; }
+.fr__ring {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 12px 2px rgba(204, 164, 129, 0.5);
+  animation: chargePulse 1.8s var(--ease-io) infinite;
+}
+.fr__bar { display: block; width: 100%; height: 10px; border-radius: 100px;
+           background: rgba(20, 24, 27, 0.08); overflow: hidden; }
+.fr__bar i { display: block; height: 100%; width: 62%; border-radius: 100px;
+             background: linear-gradient(90deg, var(--gold-deep), var(--gold) 60%, var(--gold-lit)); }
+
+.fr__lamps { display: flex; gap: 1.1rem; }
+.fr__lamps i { width: 12px; height: 12px; border-radius: 50%; background: rgba(20, 24, 27, 0.12); }
+.fr__lamps i:nth-child(2) {
+  background: #fff;
+  box-shadow: 0 0 0 1.5px rgba(20, 24, 27, 0.14), 0 0 12px 4px rgba(214, 226, 238, 0.9);
+}
+
+.fr__heads { display: flex; gap: 7px; }
+.fr__heads i { width: 15px; height: 40px; border-radius: 8px 8px 3px 3px; background: rgba(20, 24, 27, 0.1); }
+.fr__heads i:nth-child(-n+3) { background: var(--gold); }
+
+.fr__kitart {
+  width: 100%;
+  max-height: 130px;
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* how far along the strip you are */
+.strip__meter {
+  height: 2px;
+  margin: 0 var(--gutter);
+  background: rgba(20, 24, 27, 0.1);
+  border-radius: 2px;
+}
+.strip__meter span {
+  display: block;
+  height: 100%;
+  width: calc(var(--p, 0) * 100%);
+  background: var(--gold-deep);
+  border-radius: 2px;
+}
+
+.aftermath { padding: var(--s-6) var(--gutter) var(--s-7); }
+.specs__src { font-size: var(--t-sm); color: var(--text-faint); max-width: 72ch; }
+
+@media (max-width: 900px) {
+  .strip { height: 560vh; }
+  .fr { width: clamp(255px, 78vw, 360px); padding: var(--s-3); }
+  .fr::after { font-size: 7rem; }
+  .fr__cells { grid-template-columns: repeat(15, 1fr); }
+  .fr__art { max-height: 90px; }
+}
+
+/* --- the dialog a frame opens ------------------------------------------- */
+
+.modal {
+  width: min(560px, calc(100vw - 2rem));
+  max-height: min(86vh, 780px);
+  padding: var(--s-5) var(--s-5) var(--s-4);
+  border: 1px solid var(--hairline-ink);
+  border-radius: 18px;
+  background: linear-gradient(165deg, var(--ink-soft), #12161A);
+  color: var(--text-on-ink);
+  box-shadow: 0 40px 110px rgba(0, 0, 0, 0.55);
+  overflow: auto;
+}
+.modal::backdrop {
+  background: rgba(10, 13, 16, 0.62);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.modal[open] { animation: modal-in 340ms var(--ease-out); }
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+.modal__close {
+  position: absolute;
+  top: var(--s-3);
+  right: var(--s-3);
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: 1px solid var(--hairline-ink);
+  border-radius: 50%;
+  background: none;
+  color: var(--text-on-ink-dim);
+  font-family: var(--body);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease-out), border-color var(--dur) var(--ease-out),
+              background var(--dur) var(--ease-out);
+}
+.modal__close:hover {
+  color: var(--ink);
+  background: var(--gold-lit);
+  border-color: var(--gold-lit);
+}
+
+.modal__kicker {
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold-lit);
+}
+.modal__title {
+  margin: 0.45rem 2.5rem var(--s-3) 0;
+  font-size: clamp(1.7rem, 3.4vw, 2.3rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+}
+.modal__body { display: grid; gap: var(--s-3); }
+
+/* --- what lives inside the dialog --------------------------------------- */
+
+.demo { display: grid; gap: var(--s-3); }
+
+.demo__read {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(2.4rem, 6vw, 3.6rem);
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+}
+.demo__read small {
+  font-family: var(--mono);
+  font-weight: 400;
+  font-size: var(--t-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold-lit);
+  margin-left: 0.6em;
+}
+.demo__sub {
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-on-ink-dim);
+  margin-top: -0.6rem;
+}
+.demo__note { font-size: var(--t-sm); color: var(--text-on-ink-dim); }
+.demo__quote { font-size: 1.05rem; color: var(--text-on-ink); }
+.demo__caption {
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-on-ink-dim);
+}
+.demo__wave { width: 100%; height: 84px; color: var(--gold-lit); }
+
+/* the one control shape they share, though each does a different job */
+.demo__btn {
+  justify-self: start;
+  padding: 0.75em 1.4em;
+  border: 1px solid var(--gold);
+  border-radius: 100px;
+  background: none;
+  color: var(--gold-lit);
+  font-family: var(--body);
+  font-size: var(--t-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease-out), color var(--dur) var(--ease-out);
+}
+.demo__btn:hover { background: var(--gold); color: var(--ink); }
+.demo__btn--hold { user-select: none; touch-action: none; }
+.demo__btn.is-held { background: var(--gold-high); color: var(--ink); }
+
+/* battery — ninety squares, one a day */
+.demo__grid {
+  display: grid;
+  grid-template-columns: repeat(18, 1fr);
+  gap: 4px;
+}
+.demo__cellDot {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  background: var(--gold);
+  transition: background 200ms var(--ease-out);
+}
+.demo__cellDot.is-spent { background: rgba(242, 245, 244, 0.1); }
+
+/* charging — the cell filling on the cable */
+.demo__cell {
+  position: relative;
+  height: 54px;
+  border: 2px solid rgba(242, 245, 244, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.demo__cell::after {
+  content: "";
+  position: absolute;
+  right: -9px;
+  top: 50%;
+  width: 7px;
+  height: 20px;
+  border-radius: 0 3px 3px 0;
+  background: rgba(242, 245, 244, 0.3);
+  transform: translateY(-50%);
+}
+.demo__cellFill {
+  height: 100%;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--gold-deep), var(--gold) 55%, var(--gold-high));
+}
+
+/* timer — the dial that runs itself */
+.demo__dial { width: min(100%, 230px); justify-self: center; color: var(--gold-lit); }
+.demo__dial svg { width: 100%; height: auto; }
+.demo__run { transition: opacity 200ms var(--ease-out); }
+.demo__dialRead {
+  font-family: var(--mono);
+  font-size: 30px;
+  fill: var(--text-on-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* modes — the indicator column and the five keys */
+.demo__lamps { display: flex; gap: 0.9rem; align-items: center; }
+.demo__lamp {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(242, 245, 244, 0.16);
+  transition: background 240ms var(--ease-out), box-shadow 240ms var(--ease-out);
+}
+.demo__lamp.is-lit {
+  background: #fff;
+  box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.95), 0 0 18px 6px rgba(214, 226, 238, 0.5);
+}
+.demo__segs { display: flex; flex-wrap: wrap; gap: 6px; }
+.demo__seg {
+  padding: 0.55em 0.9em;
+  border: 1px solid var(--hairline-ink);
+  border-radius: 100px;
+  background: none;
+  color: var(--text-on-ink-dim);
+  font-family: var(--body);
+  font-size: var(--t-sm);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease-out), color var(--dur) var(--ease-out),
+              border-color var(--dur) var(--ease-out);
+}
+.demo__seg:hover { border-color: var(--gold); color: var(--text-on-ink); }
+.demo__seg.is-on { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+
+/* charging — the light on the handle, saying what it is doing */
+.demo__charge {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-on-ink-dim);
+}
+.demo__chargeRing {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(242, 245, 244, 0.28);
+  transition: border-color 240ms var(--ease-out), box-shadow 240ms var(--ease-out),
+              background 240ms var(--ease-out);
+}
+.demo__charge.is-on .demo__chargeRing {
+  border-color: var(--gold);
+  box-shadow: 0 0 12px 3px rgba(204, 164, 129, 0.6);
+  animation: chargePulse 1.4s var(--ease-io) infinite;
+}
+.demo__charge.is-done .demo__chargeRing {
+  border-color: var(--gold-high);
+  background: var(--gold-high);
+  box-shadow: 0 0 16px 4px rgba(248, 212, 172, 0.55);
+}
+@keyframes chargePulse {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 1; }
+}
+
+/* heads — ten of them, clickable */
+.demo__heads { display: flex; gap: 8px; flex-wrap: wrap; }
+.demo__head {
+  width: 20px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px 10px 3px 3px;
+  background: rgba(242, 245, 244, 0.16);
+  cursor: pointer;
+  transition: background 220ms var(--ease-out), transform 220ms var(--ease-out);
+}
+.demo__head:hover { transform: translateY(-3px); }
+.demo__head.is-spent { background: rgba(126, 91, 62, 0.75); }
+.demo__head.is-now { background: var(--gold-high); box-shadow: 0 0 0 2px rgba(248, 212, 172, 0.28); }
+
+/* bristles — two densities side by side */
+.demo__tufts { display: grid; gap: 0.4rem; }
+.demo__tuftRow {
+  display: flex;
+  gap: 4px;
+  align-items: end;
+  height: 46px;
+  padding-bottom: 2px;
+  border-bottom: 2px solid rgba(242, 245, 244, 0.22);
+}
+.demo__tuft {
+  flex: 1 1 auto;
+  height: 100%;
+  max-width: 14px;
+  border-radius: 4px 4px 1px 1px;
+  background: rgba(242, 245, 244, 0.32);
+}
+.demo__tuftRow--dense .demo__tuft { background: var(--gold-lit); }
+.demo__tufts.is-flat .demo__tuftRow--dense { opacity: 0.18; }
+.demo__tufts.is-flat .demo__tuftRow:not(.demo__tuftRow--dense) .demo__tuft { background: var(--gold-lit); }
+
+/* the box — unpacked a piece at a time */
+.demo__items { display: grid; gap: 0.35rem; margin: 0; padding: 0; list-style: none; }
+.demo__item {
+  display: grid;
+  grid-template-columns: 11rem 1fr;
+  gap: 0.8rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  background: rgba(242, 245, 244, 0.04);
+  color: var(--text-on-ink-dim);
+  opacity: 0.32;
+  transform: translateX(-8px);
+  transition: opacity 380ms var(--ease-out), transform 380ms var(--ease-out),
+              background 380ms var(--ease-out);
+}
+.demo__item b { font-family: var(--mono); font-size: var(--t-label);
+                letter-spacing: 0.1em; text-transform: uppercase; }
+.demo__item.is-out {
+  opacity: 1;
+  transform: none;
+  background: rgba(204, 164, 129, 0.14);
+  color: var(--text-on-ink);
+}
+.demo__item.is-out b { color: var(--gold-lit); }
+
+@media (max-width: 520px) {
+  .demo__grid { grid-template-columns: repeat(15, 1fr); }
+  .demo__item { grid-template-columns: 1fr; gap: 0.1rem; }
+}
+
+/* --- 4. where to get it ------------------------------------------------- */
+
+.buy {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: clamp(2rem, 6vw, 5rem);
+  padding: var(--s-8) var(--gutter);
+}
+.buy__copy { display: grid; gap: var(--s-3); justify-items: start; }
+.buy__title {
+  font-size: var(--t-xl);
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+}
+.buy__rating { display: flex; align-items: center; gap: 0.7em; color: var(--text-muted); font-size: var(--t-sm); }
+.buy__rating strong { color: var(--text); }
+.buy__stars svg { width: 1.15rem; height: 1.15rem; fill: var(--gold); display: block; }
+
+/* the listing shot now carries the page's own background, so it needs no card
+   around it — it simply sits on the page like the handle does */
+.buy__shot { margin: 0; }
+
+@media (max-width: 860px) {
+  .buy { grid-template-columns: 1fr; padding: var(--s-7) var(--gutter); }
+}
+
+.foot {
+  background: var(--ink);
+  color: var(--text-on-ink-dim);
+  padding: var(--s-4) var(--gutter) var(--s-5);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--s-3);
+  font-size: var(--t-sm);
+}
+.foot p { max-width: 58ch; }
+.foot__mark {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(2rem, 7vw, 5rem);
+  letter-spacing: -0.05em;
+  color: rgba(242, 245, 244, 0.08);
+  line-height: 0.8;
+}
+
+/* --- motion off --------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+
+  .tour { height: auto; }
+  .tour__sticky { position: static; height: auto; }
+  .tour__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    height: auto;
+    gap: var(--s-4);
+  }
+  .tour__stage { height: 70vh; }
+  .tour__panels { display: grid; gap: var(--s-4); width: 100%; }
+  .panel {
+    position: static;
+    opacity: 1;
+    transform: none;
+    width: 100%;
+    max-width: 60ch;
+    text-align: left;
+  }
+  .panel::after { display: none; }
+  .tour__press::after { animation: none; }
+
+  /* nothing travels sideways: the frames become a plain grid you can read */
+  .strip { height: auto; }
+  .strip__rail { position: static; height: auto; overflow: visible; padding: var(--s-6) 0; }
+  .strip__track {
+    width: auto;
+    transform: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+  .fr { width: auto; }
+  .strip__meter { display: none; }
+  .fr__ring { animation: none; }
+
+  .modal[open] { animation: none; }
+
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

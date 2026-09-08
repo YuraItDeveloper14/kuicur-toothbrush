@@ -1,0 +1,68 @@
+/* ---------------------------------------------------------------------------
+   Kuicur — locked theme.
+   Every colour is sampled from the photograph of the handle itself: the cool
+   white of the body, the gold ramp off the collar, the porcelain the shot was
+   taken against. Change a value here and the whole page follows.
+--------------------------------------------------------------------------- */
+
+:root {
+  /* Surfaces — the exact grey-white the photograph sits on, so the handle
+     floats on the page with no visible frame. */
+  --porcelain:       #EDF1EF;
+  --porcelain-deep:  #E3E8E6;
+  --ink:             #101418;
+  --ink-soft:        #191E23;
+
+  /* The collar, sampled at four points along its gold ramp */
+  --gold-deep:       #7E5B3E;
+  --gold:            #CCA481;
+  --gold-lit:        #DFC69F;
+  --gold-high:       #F8D4AC;
+
+  /* The body of the handle */
+  --enamel:          #D6D5DA;
+  --enamel-deep:     #B8B7BE;
+
+  /* Type */
+  --text:            #14181B;
+  --text-muted:      #5C6A6E;
+  --text-faint:      #A6B2B3;
+  --text-on-ink:     #F2F5F4;
+  --text-on-ink-dim: #7F8C92;
+
+  --hairline:        rgba(20, 24, 27, 0.13);
+  --hairline-ink:    rgba(242, 245, 244, 0.14);
+
+  /* Type stacks */
+  --display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --body:    "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono:    "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+  /* Type scale — fluid, anchored at 375px and 1600px */
+  --t-mega:  clamp(3.4rem, 13.5vw, 15rem);
+  --t-xl:    clamp(2.6rem, 7.6vw, 7.5rem);
+  --t-lg:    clamp(2rem, 4.6vw, 4rem);
+  --t-md:    clamp(1.35rem, 2.5vw, 2.1rem);
+  --t-body:  clamp(1rem, 1.1vw, 1.15rem);
+  --t-sm:    0.9rem;
+  --t-label: 0.72rem;
+
+  /* Spacing — 8px base, doubling */
+  --s-1: 0.5rem;
+  --s-2: 1rem;
+  --s-3: 1.5rem;
+  --s-4: 2rem;
+  --s-5: 3rem;
+  --s-6: 4.5rem;
+  --s-7: 7rem;
+  --s-8: 11rem;
+
+  --gutter: clamp(1.25rem, 5vw, 5.5rem);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-io:  cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 180ms;
+  --dur:      320ms;
+  --dur-slow: 900ms;
+}

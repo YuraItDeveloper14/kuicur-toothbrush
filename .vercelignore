@@ -1,0 +1,14 @@
+# Only what the page actually serves goes up. The originals and the scripts
+# that turn them into assets stay on disk.
+tools/
+.claude/
+# credentials and local config — the CLI drops these anyway, said out loud
+# so it does not depend on that
+.env*
+.vercel/
+assets/img/brush-photo.png
+assets/img/brush-photo-384.png
+assets/img/kit-photo.png
+assets/img/handle-shot.png
+assets/img/kit-shot.png
+assets/img/kit-white.webp
