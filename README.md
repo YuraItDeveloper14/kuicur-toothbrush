@@ -3,6 +3,11 @@
 <!-- badges -->
 [![CI](https://github.com/YuraItDeveloper14/kuicur-toothbrush/actions/workflows/check.yml/badge.svg)](https://github.com/YuraItDeveloper14/kuicur-toothbrush/actions/workflows/check.yml) [![License](https://img.shields.io/github/license/YuraItDeveloper14/kuicur-toothbrush?color=blue)](LICENSE) [![Last commit](https://img.shields.io/github/last-commit/YuraItDeveloper14/kuicur-toothbrush)](https://github.com/YuraItDeveloper14/kuicur-toothbrush/commits)
 
+<!-- preview -->
+<p align="center">
+  <img src="docs/preview.jpg" alt="kuicur-toothbrush — live site" width="900">
+</p>
+
 A single-page product site for the Kuicur-White sonic toothbrush, built around
 one photograph of the handle. Static HTML, CSS and vanilla JavaScript — no
 framework, no build step, no dependencies.
