@@ -82,6 +82,12 @@ immersed, so this page does not describe it as submersible.
 
 Where a demo plays something back faster than real time, the panel says so.
 
+## Tests
+
+`python -m pytest -q tests` serves the page locally, opens it in Chromium and checks
+that the headline shows and no script error is thrown — on load and while scrolling.
+Needs `pip install pytest playwright` and `python -m playwright install chromium`.
+
 ## Credits and licences
 
 The photograph of the handle was taken by the owner. The kit photograph in the
